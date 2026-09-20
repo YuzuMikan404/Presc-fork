@@ -9,14 +9,33 @@ class SafVaultService(context: Context) {
     private val resolver = context.contentResolver
 
     fun getDisplayName(uri: Uri): String {
-        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                return cursor.getString(0) ?: "Vault"
-            }
+        val treeDocumentId = runCatching {
+            DocumentsContract.getTreeDocumentId(uri)
+        }.getOrNull()
+
+        if (treeDocumentId != null) {
+            val documentUri = DocumentsContract.buildDocumentUriUsingTree(
+                uri,
+                treeDocumentId,
+            )
+            runCatching {
+                resolver.query(
+                    documentUri,
+                    arrayOf(OpenableColumns.DISPLAY_NAME),
+                    null,
+                    null,
+                    null,
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                }
+            }.getOrNull()?.takeIf { it.isNotBlank() }?.let { return it }
         }
-        return runCatching {
-            DocumentsContract.getTreeDocumentId(uri).substringAfterLast(':')
-        }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Vault"
+
+        return treeDocumentId
+            ?.substringAfterLast(':')
+            ?.substringAfterLast('/')
+            ?.takeIf { it.isNotBlank() }
+            ?: "Vault"
     }
 
     fun listDocuments(treeUri: Uri): List<Map<String, Any?>> {
