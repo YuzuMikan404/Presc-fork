@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:presc/core/constants/punctuation_constants.dart';
 
@@ -12,12 +11,14 @@ class HiraganaService {
   *  Web Services by Yahoo! JAPAN （https://developer.yahoo.co.jp/sitemap/）
   * */
   Future<HiraganaResult?> convert(String text) async {
+    const appId = String.fromEnvironment('YAHOO_APP_ID');
+    if (appId.isEmpty) return null;
     final url = "https://jlp.yahooapis.jp/FuriganaService/V2/furigana";
     final http.Response res = await http.post(
       Uri.parse(url),
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": "Yahoo AppID: ${dotenv.env["YAHOO_APP_ID"]}",
+        "User-Agent": "Yahoo AppID: $appId",
       },
       body: json.encode({
         "id": "1234-1",

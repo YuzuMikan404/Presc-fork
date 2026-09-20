@@ -1,14 +1,29 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:presc/features/playback/data/hiragana_service.dart';
+import 'package:presc/features/vault/data/models/vault_document.dart';
 
 void main() {
-  test("hiragana test", () async {
-    dotenv.testLoad(fileInput: File(".env").readAsStringSync());
-    final hiragana = HiraganaService();
-    final result = await hiragana.convert("吾輩は猫である。名前はまだ無い。");
-    expect(result?.hiragana, ['わがはいはねこである', '。', 'なまえは', 'まだ', 'ない', '。']);
+  test('Markdown is projected into readable playback text', () {
+    const document = VaultDocument(
+      id: 'content://note',
+      name: 'sample.md',
+      path: 'sample.md',
+      markdown: '''---
+tags:
+  - speech
+---
+# 見出し
+
+> [!NOTE] メモ
+> **重要な本文**と[[別のノート|表示名]]です。
+
+- [x] 完了 #speech
+''',
+    );
+
+    expect(document.speechText, contains('見出し'));
+    expect(document.speechText, contains('重要な本文と表示名です。'));
+    expect(document.speechText, contains('完了'));
+    expect(document.speechText, isNot(contains('tags:')));
+    expect(document.speechText, isNot(contains('#speech')));
   });
 }

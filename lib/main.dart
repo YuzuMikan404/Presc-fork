@@ -1,33 +1,21 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:presc/features/manuscript/ui/pages/manuscript_page.dart';
-import 'package:presc/features/onboarding/ui/pages/onboarding_page.dart';
-import 'package:presc/features/setting/ui/providers/backup_manuscript_provider.dart';
-import 'package:presc/features/tag/ui/providers/editable_tag_item_provider.dart';
-import 'package:presc/features/manuscript/ui/providers/manuscript_edit_provider.dart';
-import 'package:presc/features/manuscript/ui/providers/manuscript_provider.dart';
-import 'package:presc/features/manuscript/ui/providers/manuscript_tag_provider.dart';
-import 'package:presc/features/onboarding/ui/providers/onboarding_provider.dart';
 import 'package:presc/features/playback/ui/providers/playback_provider.dart';
 import 'package:presc/features/playback/ui/providers/playback_timer_provider.dart';
 import 'package:presc/features/playback/ui/providers/playback_visualizer_provider.dart';
 import 'package:presc/features/playback/ui/providers/speech_to_text_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_sharing_intent/flutter_sharing_intent.dart';
-import 'package:flutter_sharing_intent/model/sharing_file.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:presc/features/vault/ui/pages/vault_home_page.dart';
+import 'package:presc/features/vault/ui/providers/vault_prototype_provider.dart';
 
 import 'core/constants/color_constants.dart';
 import 'generated/l10n.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarBrightness: Brightness.light, // for iOS
@@ -37,20 +25,13 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => OnBoardingProvider()),
-        ChangeNotifierProvider(create: (context) => ManuscriptProvider()),
-        ChangeNotifierProvider(create: (context) => ManuscriptEditProvider()),
-        ChangeNotifierProvider(
-          create: (context) => EditableTagItemProvider(),
-        ),
-        ChangeNotifierProvider(create: (context) => ManuscriptTagProvider()),
         ChangeNotifierProvider(create: (context) => PlaybackProvider()),
         ChangeNotifierProvider(create: (context) => SpeechToTextProvider()),
         ChangeNotifierProvider(
           create: (context) => PlaybackVisualizerProvider(),
         ),
         ChangeNotifierProvider(create: (context) => PlaybackTimerProvider()),
-        ChangeNotifierProvider(create: (_) => BackupManuscriptProvider()),
+        ChangeNotifierProvider(create: (_) => VaultProvider()),
       ],
       child: MyApp(),
     ),
@@ -63,26 +44,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  StreamSubscription? _intentDataStreamSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _intentDataStreamSubscription = FlutterSharingIntent.instance.getMediaStream().listen(
-      receiveShareData,
-      onError: (err) {
-        print("getMediaStream error: $err");
-      },
-    );
-    FlutterSharingIntent.instance.getInitialSharing().then(receiveShareData);
-  }
-
-  @override
-  void dispose() {
-    _intentDataStreamSubscription?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -120,40 +81,8 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
       ],
       supportedLocales: S.delegate.supportedLocales,
-      home: FutureBuilder(
-        future: _isFirstLaunch(),
-        builder: (context, snapshot) {
-          if (snapshot.data == null)
-            return Container(color: ColorConstants.backgroundColor);
-          if (snapshot.data == true) {
-            return OnBoardingPage();
-          } else {
-            return ManuscriptPage();
-          }
-        },
-      ),
+      home: const VaultHomePage(),
     );
   }
 
-  Future<bool> _isFirstLaunch() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool("isFirstLaunch") ?? true;
-  }
-
-  Future<void> receiveShareData(List<SharedFile>? value) async {
-    if (value == null || value.isEmpty) return;
-
-    final sharedFile = value.first;
-
-    // テキストデータの場合、valueプロパティにテキストが入る
-    final text = sharedFile.value ?? '';
-    if (text.isNotEmpty) {
-      final script = context.read<ManuscriptProvider>();
-      final tag = context.read<ManuscriptTagProvider>();
-      final id = await script.addScript(title: "", content: text);
-
-      await script.updateScriptTable();
-      await tag.loadTag(memoId: id);
-    }
-  }
 }
