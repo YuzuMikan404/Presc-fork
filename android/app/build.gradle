@@ -71,7 +71,7 @@ android {
             dimension "default"
         }
         beta {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             dimension "default"
         }
     }

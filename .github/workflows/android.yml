@@ -50,10 +50,28 @@ jobs:
 
       - run: flutter test
 
-      - name: decode keystore
+      - name: configure Android signing
         env:
-          ENCODED_DEBUG_KEYSTORE: ${{ secrets.ENCODED_DEBUG_KEYSTORE }}
-        run: echo "$ENCODED_DEBUG_KEYSTORE" | base64 --decode > ~/.android/debug.keystore
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+        run: |
+          test -n "$ANDROID_RELEASE_KEYSTORE_BASE64"
+          test -n "$ANDROID_RELEASE_STORE_PASSWORD"
+          test -n "$ANDROID_RELEASE_KEY_PASSWORD"
+          test -n "$ANDROID_RELEASE_KEY_ALIAS"
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/presc-release.jks"
+          keytool -list \
+            -keystore "$RUNNER_TEMP/presc-release.jks" \
+            -storepass "$ANDROID_RELEASE_STORE_PASSWORD" \
+            -alias "$ANDROID_RELEASE_KEY_ALIAS" >/dev/null
+          printf '%s\n' \
+            "storePassword=$ANDROID_RELEASE_STORE_PASSWORD" \
+            "keyPassword=$ANDROID_RELEASE_KEY_PASSWORD" \
+            "keyAlias=$ANDROID_RELEASE_KEY_ALIAS" \
+            "storeFile=$RUNNER_TEMP/presc-release.jks" \
+            > android/key.properties
 
       - name: build apk
         run: flutter build apk --flavor beta

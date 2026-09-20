@@ -28,6 +28,10 @@
 .flutter-plugins-dependencies
 .packages
 .env
+.signing/
+android/key.properties
+*.jks
+*.keystore
 .pub-cache/
 .pub/
 /build/
