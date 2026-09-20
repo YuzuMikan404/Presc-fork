@@ -79,7 +79,7 @@ class _VaultDrawerState extends State<VaultDrawer> {
           IconButton(
             tooltip: '閉じる',
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.left_panel_close_outlined),
+            icon: const Icon(Icons.close),
           ),
         ],
       ),
